@@ -1,0 +1,11 @@
+{
+	"name": "alcovia-intervention-engine",
+	"private": true,
+	"workspaces": [
+		"client",
+		"server"
+	],
+	"scripts": {
+		"build:client": "npm --prefix client run web:build"
+	}
+}

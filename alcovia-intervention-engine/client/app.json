@@ -1,0 +1,19 @@
+{
+	"expo": {
+		"name": "Alcovia Intervention",
+		"slug": "alcovia-intervention-engine",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"scheme": "alcovia",
+		"platforms": ["ios", "android", "web"],
+		"jsEngine": "hermes",
+		"web": {
+			"bundler": "metro"
+		},
+		"extra": {
+			"apiUrl": "http://localhost:5000/api",
+			"socketUrl": "http://localhost:5000",
+			"studentId": "student 123"
+		}
+	}
+}

@@ -1,0 +1,45 @@
+diff --git a/node_modules/react-scripts/config/webpackDevServer.config.js b/node_modules/react-scripts/config/webpackDevServer.config.js
+index 522a81b..4b00c37 100644
+--- a/node_modules/react-scripts/config/webpackDevServer.config.js
++++ b/node_modules/react-scripts/config/webpackDevServer.config.js
+@@ -107,29 +107,28 @@ module.exports = function (proxy, allowedHost) {
+       disableDotRule: true,
+       index: paths.publicUrlOrPath,
+     },
+-    // `proxy` is run between `before` and `after` `webpack-dev-server` hooks
++    // `proxy` is run inside setupMiddlewares in webpack-dev-server v4
+     proxy,
+-    onBeforeSetupMiddleware(devServer) {
+-      // Keep `evalSourceMapMiddleware`
+-      // middlewares before `redirectServedPath` otherwise will not have any effect
+-      // This lets us fetch source contents from webpack for the error overlay
++    setupMiddlewares(middlewares, devServer) {
++      if (!devServer) {
++        throw new Error('webpack-dev-server is not defined');
++      }
++
++      // Keep `evalSourceMapMiddleware` before redirect middleware
+       devServer.app.use(evalSourceMapMiddleware(devServer));
+ 
+       if (fs.existsSync(paths.proxySetup)) {
+         // This registers user provided middleware for proxy reasons
+         require(paths.proxySetup)(devServer.app);
+       }
+-    },
+-    onAfterSetupMiddleware(devServer) {
++
+       // Redirect to `PUBLIC_URL` or `homepage` from `package.json` if url not match
+       devServer.app.use(redirectServedPath(paths.publicUrlOrPath));
+ 
+-      // This service worker file is effectively a 'no-op' that will reset any
+-      // previous service worker registered for the same host:port combination.
+-      // We do this in development to avoid hitting the production cache if
+-      // it used the same host and port.
+-      // https://github.com/facebook/create-react-app/issues/2272#issuecomment-302832432
++      // Reset any previously registered service worker for the same host:port
+       devServer.app.use(noopServiceWorkerMiddleware(paths.publicUrlOrPath));
++
++      return middlewares;
+     },
+   };
+ };

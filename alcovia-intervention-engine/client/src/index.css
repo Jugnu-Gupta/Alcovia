@@ -1,0 +1,318 @@
+/* Legacy stylesheet preserved intentionally empty after migrating to React Native Web. */
+
+code {
+	font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+		monospace;
+}
+
+.app {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+}
+
+.header {
+	text-align: center;
+	margin-bottom: 40px;
+	color: white;
+}
+
+.header h1 {
+	font-size: 2.5rem;
+	margin-bottom: 10px;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header p {
+	font-size: 1.2rem;
+	opacity: 0.9;
+}
+
+.student-card {
+	background: white;
+	border-radius: 20px;
+	padding: 40px;
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+	max-width: 500px;
+	width: 100%;
+	text-align: center;
+}
+
+.status-indicator {
+	display: inline-block;
+	padding: 8px 16px;
+	border-radius: 20px;
+	font-weight: bold;
+	font-size: 0.9rem;
+	margin-bottom: 20px;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.status-normal {
+	background: #4caf50;
+	color: white;
+}
+
+.status-locked {
+	background: #f44336;
+	color: white;
+}
+
+.status-remedial {
+	background: #ff9800;
+	color: white;
+}
+
+.timer-section {
+	margin-bottom: 30px;
+}
+
+.timer-display {
+	font-size: 4rem;
+	font-weight: bold;
+	color: #333;
+	margin-bottom: 20px;
+	font-family: "Courier New", monospace;
+}
+
+.timer-display.warning {
+	color: #ff5722;
+}
+
+.control-buttons {
+	display: flex;
+	gap: 15px;
+	justify-content: center;
+	margin-bottom: 30px;
+	flex-wrap: wrap;
+}
+
+.btn {
+	padding: 12px 24px;
+	border: none;
+	border-radius: 8px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	min-width: 120px;
+}
+
+.btn-primary {
+	background: #667eea;
+	color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: #5a6fd8;
+	transform: translateY(-2px);
+}
+
+.btn-success {
+	background: #4caf50;
+	color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+	background: #45a049;
+	transform: translateY(-2px);
+}
+
+.btn-danger {
+	background: #f44336;
+	color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+	background: #da190b;
+	transform: translateY(-2px);
+}
+
+.btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.quiz-section {
+	margin-bottom: 30px;
+}
+
+.quiz-section h3 {
+	color: #333;
+	margin-bottom: 15px;
+}
+
+.input-group {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.input-group label {
+	font-weight: 600;
+	color: #555;
+	text-align: left;
+}
+
+.input-group input {
+	padding: 12px;
+	border: 2px solid #ddd;
+	border-radius: 8px;
+	font-size: 1rem;
+	transition: border-color 0.3s ease;
+}
+
+.input-group input:focus {
+	outline: none;
+	border-color: #667eea;
+}
+
+.locked-message {
+	text-align: center;
+	padding: 40px 20px;
+}
+
+.locked-message h2 {
+	color: #f44336;
+	margin-bottom: 20px;
+	font-size: 2rem;
+}
+
+.locked-message p {
+	color: #666;
+	font-size: 1.1rem;
+	line-height: 1.6;
+}
+
+.remedial-task {
+	text-align: center;
+	padding: 20px;
+}
+
+.remedial-task h3 {
+	color: #ff9800;
+	margin-bottom: 20px;
+	font-size: 1.5rem;
+}
+
+.task-description {
+	background: #f5f5f5;
+	padding: 20px;
+	border-radius: 8px;
+	margin-bottom: 20px;
+	font-size: 1.1rem;
+	line-height: 1.6;
+}
+
+.activity-log {
+	margin-top: 30px;
+	padding-top: 20px;
+	border-top: 2px solid #eee;
+}
+
+.activity-log h4 {
+	color: #333;
+	margin-bottom: 15px;
+}
+
+.log-entry {
+	background: #f8f9fa;
+	padding: 10px 15px;
+	border-radius: 8px;
+	margin-bottom: 10px;
+	text-align: left;
+	font-size: 0.9rem;
+}
+
+.connection-status {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	padding: 8px 16px;
+	border-radius: 20px;
+	font-size: 0.8rem;
+	font-weight: bold;
+}
+
+.connection-status.connected {
+	background: #4caf50;
+	color: white;
+}
+
+.connection-status.disconnected {
+	background: #f44336;
+	color: white;
+}
+
+.cheater-detection {
+	background: #fff3cd;
+	border: 1px solid #ffeaa7;
+	border-radius: 8px;
+	padding: 15px;
+	margin-top: 20px;
+	text-align: center;
+}
+
+.cheater-detection.active {
+	background: #f8d7da;
+	border-color: #f5c6cb;
+}
+
+.cheater-detection h4 {
+	color: #856404;
+	margin-bottom: 10px;
+}
+
+.cheater-detection.active h4 {
+	color: #721c24;
+}
+
+.cheater-detection p {
+	color: #6c757d;
+	font-size: 0.9rem;
+}
+
+.spinner {
+	border: 3px solid #f3f3f3;
+	border-top: 3px solid #667eea;
+	border-radius: 50%;
+	width: 30px;
+	height: 30px;
+	animation: spin 1s linear infinite;
+	margin: 20px auto;
+}
+
+@keyframes spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 600px) {
+	.student-card {
+		padding: 20px;
+		margin: 0 10px;
+	}
+
+	.timer-display {
+		font-size: 3rem;
+	}
+
+	.control-buttons {
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.btn {
+		width: 100%;
+		max-width: 200px;
+	}
+}

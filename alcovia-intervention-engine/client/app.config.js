@@ -1,0 +1,20 @@
+import 'dotenv/config';
+
+export default ({ config }) => ({
+    ...config,
+    name: 'Alcovia Intervention',
+    slug: 'alcovia-intervention-engine',
+    version: '1.0.0',
+    orientation: 'portrait',
+    scheme: 'alcovia',
+    platforms: ['ios', 'android', 'web'],
+    jsEngine: 'hermes',
+    web: {
+        bundler: 'metro',
+    },
+    extra: {
+        apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5000/api',
+        socketUrl: process.env.EXPO_PUBLIC_SOCKET_URL ?? 'http://localhost:5000',
+        studentId: process.env.EXPO_PUBLIC_STUDENT_ID ?? 'student 123',
+    },
+});

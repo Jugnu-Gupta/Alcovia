@@ -1,0 +1,293 @@
+{
+  "name": "Alcovia Mentor Notification Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mentor-notification",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d4b4c4e7-1234-4567-8901-ab1234567890",
+      "name": "Webhook - Student Failure",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "mentor-notification"
+    },
+    {
+      "parameters": {
+        "authentication": "generic",
+        "genericAuthType": "httpHeaderAuth",
+        "httpHeaderAuth": {
+          "name": "Authorization",
+          "value": "Bearer YOUR_EMAIL_API_KEY"
+        },
+        "requestMethod": "POST",
+        "url": "https://api.emailjs.com/api/v1.0/email/send",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"service_id\": \"YOUR_SERVICE_ID\",\n  \"template_id\": \"mentor_notification\",\n  \"user_id\": \"YOUR_PUBLIC_KEY\",\n  \"template_params\": {\n    \"student_id\": \"{{ $node['Webhook - Student Failure'].json['student_id'] }}\",\n    \"quiz_score\": \"{{ $node['Webhook - Student Failure'].json['quiz_score'] }}\",\n    \"focus_minutes\": \"{{ $node['Webhook - Student Failure'].json['focus_minutes'] }}\",\n    \"timestamp\": \"{{ $node['Webhook - Student Failure'].json['timestamp'] }}\",\n    \"intervention_link\": \"{{ $node['Generate Intervention Link'].json['intervention_url'] }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-5678-9012-3456-ef7890123456",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "intervention_url",
+              "value": "=https://your-n8n-instance.com/webhook/mentor-action?student_id={{ $node['Webhook - Student Failure'].json['student_id'] }}&token={{ $node['Generate Token'].json['token'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5f6g7h8-9012-3456-7890-123456789012",
+      "name": "Generate Intervention Link",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "token",
+              "value": "={{ $now.toString() }}_{{ $node['Webhook - Student Failure'].json['student_id'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7g8h9i0-1234-5678-9012-345678901234",
+      "name": "Generate Token",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 180]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mentor-action",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "g8h9i0j1-2345-6789-0123-456789012345",
+      "name": "Webhook - Mentor Action",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 600],
+      "webhookId": "mentor-action"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "={{ $node['Webhook - Student Failure'].json['backend_url'] || 'http://localhost:5000' }}/api/assign-intervention",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"student_id\": \"{{ $node['Webhook - Mentor Action'].json['student_id'] }}\",\n  \"task_description\": \"{{ $node['Webhook - Mentor Action'].json['task_description'] || 'Complete additional study materials and retake assessment' }}\",\n  \"intervention_token\": \"{{ $node['Webhook - Mentor Action'].json['token'] }}\"\n}",
+        "options": {}
+      },
+      "id": "h9i0j1k2-3456-7890-1234-567890123456",
+      "name": "Assign Intervention to Student",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [660, 600]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $node['Webhook - Mentor Action'].json['action'] }}",
+                    "value2": "assign_task"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "assign_task"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $node['Webhook - Mentor Action'].json['action'] }}",
+                    "value2": "auto_unlock"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "auto_unlock"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "i0j1k2l3-4567-8901-2345-678901234567",
+      "name": "Route Mentor Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "={{ $node['Webhook - Student Failure'].json['backend_url'] || 'http://localhost:5000' }}/api/assign-intervention",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"student_id\": \"{{ $node['Webhook - Mentor Action'].json['student_id'] }}\",\n  \"task_description\": \"Auto-unlocked after mentor review timeout. Please retake assessment.\",\n  \"intervention_token\": \"auto_unlock\"\n}",
+        "options": {}
+      },
+      "id": "j1k2l3m4-5678-9012-3456-789012345678",
+      "name": "Auto-unlock Student",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [660, 780]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "minutes"
+      },
+      "id": "k2l3m4n5-6789-0123-4567-890123456789",
+      "name": "Wait for Mentor Response",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [450, 780]
+    },
+    {
+      "parameters": {
+        "content": "=<!DOCTYPE html>\n<html>\n<head>\n    <title>Mentor Action Required</title>\n    <style>\n        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n        .container { background: #f8f9fa; padding: 30px; border-radius: 10px; }\n        .header { text-align: center; color: #dc3545; margin-bottom: 30px; }\n        .student-info { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }\n        .actions { text-align: center; margin-top: 30px; }\n        .btn { display: inline-block; padding: 12px 30px; margin: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; }\n        .btn-primary { background: #007bff; color: white; }\n        .btn-success { background: #28a745; color: white; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🚨 Student Intervention Required</h1>\n            <p>A student needs your immediate attention</p>\n        </div>\n        \n        <div class=\"student-info\">\n            <h3>Student Details:</h3>\n            <p><strong>Student ID:</strong> {{ $node['Webhook - Student Failure'].json['student_id'] }}</p>\n            <p><strong>Quiz Score:</strong> {{ $node['Webhook - Student Failure'].json['quiz_score'] }}/10</p>\n            <p><strong>Focus Time:</strong> {{ $node['Webhook - Student Failure'].json['focus_minutes'] }} minutes</p>\n            <p><strong>Timestamp:</strong> {{ $node['Webhook - Student Failure'].json['timestamp'] }}</p>\n        </div>\n        \n        <div class=\"actions\">\n            <h3>Choose Your Action:</h3>\n            <a href=\"{{ $node['Generate Intervention Link'].json['intervention_url'] }}&action=assign_task&task_description=Read Chapter 4 and complete practice exercises\" class=\"btn btn-primary\">\n                📚 Assign: Read Chapter 4\n            </a>\n            <a href=\"{{ $node['Generate Intervention Link'].json['intervention_url'] }}&action=assign_task&task_description=Schedule 1-on-1 tutoring session\" class=\"btn btn-primary\">\n                👨‍🏫 Schedule Tutoring\n            </a>\n            <a href=\"{{ $node['Generate Intervention Link'].json['intervention_url'] }}&action=auto_unlock&task_description=Student unlocked for retry\" class=\"btn btn-success\">\n                🔓 Unlock & Allow Retry\n            </a>\n        </div>\n        \n        <p style=\"text-align: center; margin-top: 30px; color: #666;\">\n            <small>Note: If no action is taken within 5 minutes, the student will be auto-unlocked.</small>\n        </p>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "l3m4n5o6-7890-1234-5678-901234567890",
+      "name": "Webhook Response - Mentor Interface",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [870, 300]
+    },
+    {
+      "parameters": {
+        "content": "={\n  \"success\": true,\n  \"message\": \"Intervention assigned successfully\",\n  \"student_id\": \"{{ $node['Webhook - Mentor Action'].json['student_id'] }}\",\n  \"action\": \"{{ $node['Webhook - Mentor Action'].json['action'] }}\"\n}",
+        "options": {}
+      },
+      "id": "m4n5o6p7-8901-2345-6789-012345678901",
+      "name": "Webhook Response - Action Confirmed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [870, 600]
+    }
+  ],
+  "connections": {
+    "Webhook - Student Failure": {
+      "main": [
+        [
+          {
+            "node": "Generate Token",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Intervention Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Intervention Link": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Notification": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response - Mentor Interface",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Mentor Action": {
+      "main": [
+        [
+          {
+            "node": "Route Mentor Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Mentor Decision": {
+      "main": [
+        [
+          {
+            "node": "Assign Intervention to Student",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-unlock Student",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Intervention to Student": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response - Action Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-unlock Student": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response - Action Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Mentor Response": {
+      "main": [
+        [
+          {
+            "node": "Auto-unlock Student",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1"
+}
