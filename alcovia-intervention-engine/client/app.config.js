@@ -1,6 +1,12 @@
-import 'dotenv/config';
+try {
+    require('dotenv').config();
+} catch (err) {
+    if (!process.env.CI && process.env.NODE_ENV !== 'production') {
+        console.warn('[Expo] dotenv not loaded:', err.message);
+    }
+}
 
-export default ({ config }) => ({
+module.exports = ({ config }) => ({
     ...config,
     name: 'Alcovia Intervention',
     slug: 'alcovia-intervention-engine',
