@@ -15,12 +15,11 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import Constants from 'expo-constants';
-import io from 'socket.io-client';
 
 const extra = Constants.expoConfig?.extra ?? {};
 const API_BASE_URL = extra.apiUrl ?? 'http://localhost:5000/api';
-const SOCKET_IO_URL = extra.socketUrl ?? 'http://localhost:5000';
 const STUDENT_ID = extra.studentId ?? 'student 123';
+const POLL_INTERVAL_MS = 10000;
 
 const STATUS_TEXT = {
   normal: 'All clear',
@@ -60,7 +59,6 @@ const App = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [focusSeconds, setFocusSeconds] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [socketConnected, setSocketConnected] = useState(false);
   const [activityLog, setActivityLog] = useState([]);
   const [focusViolation, setFocusViolation] = useState(false);
 
@@ -68,7 +66,6 @@ const App = () => {
   const appStateRef = useRef(AppState.currentState);
   const isTimerRunningRef = useRef(false);
   const focusSecondsRef = useRef(0);
-  const socketRef = useRef(null);
 
   const addActivityLog = useCallback((message) => {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -84,22 +81,26 @@ const App = () => {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }, []);
 
-  const fetchStudentStatus = useCallback(async () => {
+  const fetchStudentStatus = useCallback(async ({ showSpinner = true } = {}) => {
     try {
-      setIsLoading(true);
+      if (showSpinner) {
+        setIsLoading(true);
+      }
       const response = await axios.get(`${API_BASE_URL}/student/${STUDENT_ID}/status`);
       const { student, intervention: activeIntervention } = response.data;
       if (student?.status) {
         setStudentStatus(student.status);
       }
       setIntervention(activeIntervention ?? null);
-      addActivityLog('Synced status with mentor loop');
+      addActivityLog('Synced status with server');
     } catch (error) {
       console.error('Failed to fetch student status:', error);
       addActivityLog('Unable to sync latest status');
       Alert.alert('Sync failed', 'Could not fetch the latest status from the server.');
     } finally {
-      setIsLoading(false);
+      if (showSpinner) {
+        setIsLoading(false);
+      }
     }
   }, [addActivityLog]);
 
@@ -113,7 +114,7 @@ const App = () => {
           reason
         });
         addActivityLog('Focus violation reported to mentor');
-        await fetchStudentStatus();
+        await fetchStudentStatus({ showSpinner: false });
       } catch (error) {
         console.error('Failed to report cheat:', error);
         addActivityLog('Failed to notify mentor about focus violation');
@@ -199,38 +200,16 @@ const App = () => {
   }, [fetchStudentStatus]);
 
   useEffect(() => {
-    const socket = io(SOCKET_IO_URL, {
-      transports: ['websocket'],
-      autoConnect: true,
-      reconnectionAttempts: 10
-    });
-    socketRef.current = socket;
+    if (studentStatus === 'normal') {
+      return undefined;
+    }
 
-    socket.on('connect', () => {
-      setSocketConnected(true);
-      addActivityLog('Connected to mentor loop');
-      socket.emit('join_student', STUDENT_ID);
-    });
+    const pollId = setInterval(() => {
+      fetchStudentStatus({ showSpinner: false });
+    }, POLL_INTERVAL_MS);
 
-    socket.on('disconnect', () => {
-      setSocketConnected(false);
-      addActivityLog('Socket disconnected, retrying…');
-    });
-
-    socket.on('status_update', (payload) => {
-      if (payload?.status) {
-        setStudentStatus(payload.status);
-      }
-      if (payload?.intervention) {
-        setIntervention(payload.intervention);
-      }
-      addActivityLog('Mentor updated your status');
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [addActivityLog]);
+    return () => clearInterval(pollId);
+  }, [studentStatus, fetchStudentStatus]);
 
   const startTimer = useCallback(() => {
     setFocusViolation(false);
@@ -274,7 +253,7 @@ const App = () => {
 
       addActivityLog(`Daily check-in submitted (${response.data?.status ?? 'sent'})`);
       setQuizScore('');
-      await fetchStudentStatus();
+      await fetchStudentStatus({ showSpinner: false });
       Alert.alert('Check-in submitted', 'Your mentor will review your progress shortly.');
     } catch (error) {
       console.error('Daily check-in failed:', error);
@@ -302,7 +281,7 @@ const App = () => {
       setIntervention(null);
       setStudentStatus('normal');
       setFocusViolation(false);
-      await fetchStudentStatus();
+      await fetchStudentStatus({ showSpinner: false });
     } catch (error) {
       console.error('Failed to complete intervention:', error);
       addActivityLog('Failed to complete remedial task');
@@ -324,15 +303,6 @@ const App = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.connectionPill}>
-          <View
-            style={[styles.connectionDot, socketConnected ? styles.connected : styles.disconnected]}
-          />
-          <Text style={styles.connectionLabel}>
-            {socketConnected ? 'Connected to mentor loop' : 'Offline — retrying…'}
-          </Text>
-        </View>
-
         <View style={styles.header}>
           <Text style={styles.title}>Alcovia Intervention Engine</Text>
           <Text style={styles.subtitle}>Student Focus Mode</Text>
@@ -414,7 +384,7 @@ const App = () => {
               <Button
                 label="Refresh Status"
                 variant="primary"
-                onPress={fetchStudentStatus}
+                onPress={() => fetchStudentStatus()}
                 disabled={isLoading}
                 style={styles.fullWidthButton}
               />
@@ -461,37 +431,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#050915'
   },
   container: {
+    flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 48
-  },
-  connectionPill: {
-    alignSelf: 'center',
-    marginTop: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.18)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.45)'
-  },
-  connectionDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8
-  },
-  connected: {
-    backgroundColor: '#4ade80'
-  },
-  disconnected: {
-    backgroundColor: '#f97316'
-  },
-  connectionLabel: {
-    color: '#E5E7FF',
-    fontSize: 12,
-    fontWeight: '600'
+    paddingBottom: 32,
+    backgroundColor: '#050915'
   },
   header: {
     marginTop: 36,

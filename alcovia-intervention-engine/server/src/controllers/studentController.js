@@ -1,6 +1,5 @@
 const { query } = require('../config/database');
 const { triggerMentorNotification } = require('../services/notificationService');
-const { getSocket } = require('../utils/socket');
 
 async function runQuery(sql, params = []) {
     return query(sql, params);
@@ -12,12 +11,35 @@ async function getQuery(sql, params = []) {
 }
 
 function emitStudentStatus(studentId, payload) {
+    // Socket.io disabled for stateless deployment — log the intended payload instead.
     try {
-        const io = getSocket();
-        io.to(`student_${studentId}`).emit('status_update', payload);
-    } catch (socketErr) {
-        console.warn('Socket emit skipped:', socketErr.message);
+        console.log(`[emitStudentStatus] would emit to student_${studentId}:`, payload);
+    } catch (err) {
+        console.warn('[emitStudentStatus] log failed:', err.message);
     }
+}
+function parseFocusMinutes(body) {
+    if (typeof body.focus_minutes === 'number' && Number.isFinite(body.focus_minutes)) {
+        return body.focus_minutes;
+    }
+
+    if (typeof body.focus_duration === 'string') {
+        const parts = body.focus_duration.split(':');
+        if (parts.length === 2) {
+            const minutes = Number(parts[0]);
+            const seconds = Number(parts[1]);
+            if (!Number.isNaN(minutes) && !Number.isNaN(seconds)) {
+                return minutes + seconds / 60;
+            }
+        }
+
+        const numeric = Number(body.focus_duration);
+        if (!Number.isNaN(numeric)) {
+            return numeric;
+        }
+    }
+
+    return 0;
 }
 
 async function getStudentStatus(req, res) {
@@ -46,9 +68,9 @@ async function getStudentStatus(req, res) {
 }
 
 async function dailyCheckin(req, res) {
-    const { student_id: studentId, quiz_score: quizScore, focus_minutes: focusMinutes } = req.body;
-
-    if (!studentId || quizScore === undefined || focusMinutes === undefined) {
+    const { student_id: studentId, quiz_score: quizScore } = req.body;
+    const focusMinutes = parseFocusMinutes(req.body);
+    if (!studentId || quizScore === undefined) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -59,7 +81,7 @@ async function dailyCheckin(req, res) {
     try {
         await runQuery(
             'INSERT INTO daily_logs (student_id, quiz_score, focus_minutes, status) VALUES ($1, $2, $3, $4)',
-            [studentId, quizScore, focusMinutes, dbStatus]
+            [studentId, quizScore, Math.round(focusMinutes), dbStatus]
         );
 
         if (isSuccess) {
@@ -130,6 +152,7 @@ async function assignIntervention(req, res) {
 
 async function completeIntervention(req, res) {
     const { student_id: studentId, intervention_id: interventionId } = req.body;
+    const focusMinutes = parseFocusMinutes(req.body);
 
     if (!studentId || !interventionId) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -150,7 +173,7 @@ async function completeIntervention(req, res) {
             ['normal', studentId]
         );
 
-        emitStudentStatus(studentId, { status: 'normal' });
+        emitStudentStatus(studentId, { status: 'normal', focus_minutes: focusMinutes });
         res.json({ success: true });
     } catch (err) {
         console.error('Failed to complete intervention:', err);
@@ -159,9 +182,9 @@ async function completeIntervention(req, res) {
 }
 
 async function reportCheat(req, res) {
-    const { student_id: studentId, focus_minutes: focusMinutes, reason } = req.body;
-
-    if (!studentId || focusMinutes === undefined) {
+    const { student_id: studentId, reason } = req.body;
+    const focusMinutes = parseFocusMinutes(req.body);
+    if (!studentId) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -170,7 +193,7 @@ async function reportCheat(req, res) {
     try {
         await runQuery(
             'INSERT INTO daily_logs (student_id, quiz_score, focus_minutes, status) VALUES ($1, $2, $3, $4)',
-            [studentId, 0, focusMinutes, statusReason]
+            [studentId, 0, Math.round(focusMinutes), statusReason]
         );
 
         await runQuery(
@@ -180,7 +203,7 @@ async function reportCheat(req, res) {
 
         try {
             const notifyResult = await triggerMentorNotification(studentId, 0, focusMinutes);
-            emitStudentStatus(studentId, { status: 'needs_intervention' });
+            emitStudentStatus(studentId, { status: 'needs_intervention', focus_minutes: focusMinutes });
 
             if (notifyResult?.skipped) {
                 return res.json({ status: 'Logged cheat (notification skipped)', warning: notifyResult.message });

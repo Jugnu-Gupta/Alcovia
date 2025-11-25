@@ -22,7 +22,6 @@
 		"react-dom": "18.2.0",
 		"react-native": "0.75.1",
 		"react-native-web": "~0.19.11",
-		"socket.io-client": "^4.7.4",
 		"@expo/metro-runtime": "~3.2.3",
 		"dotenv": "^16.4.5"
 	},
